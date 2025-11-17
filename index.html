@@ -133,7 +133,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📷 Camera Selector</h1>
+        <h1>📷 Camera Selector v2</h1>
         
         <div class="selector-section">
             <label for="cameraSelect">Select a Camera:</label>
@@ -165,9 +165,23 @@
         // Get list of available cameras
         async function getCameras() {
             try {
-                // Request permission first
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                stream.getTracks().forEach(track => track.stop());
+                // Request permission with more permissive constraints for Android 14
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+                
+                // Keep stream alive briefly then stop
+                setTimeout(() => {
+                    stream.getTracks().forEach(track => track.stop());
+                }, 100);
+                
+                // Wait a bit before enumerating
+                await new Promise(resolve => setTimeout(resolve, 200));
                 
                 // Now enumerate devices
                 const devices = await navigator.mediaDevices.enumerateDevices();
@@ -180,6 +194,12 @@
                 
                 // Populate dropdown
                 cameraSelect.innerHTML = '<option value="">-- Select a camera --</option>';
+                
+                // Add facing mode options for Android
+                cameraSelect.innerHTML += '<option value="user">Front Camera (User)</option>';
+                cameraSelect.innerHTML += '<option value="environment">Back Camera (Environment)</option>';
+                
+                // Add specific device IDs
                 videoDevices.forEach((device, index) => {
                     const option = document.createElement('option');
                     option.value = device.deviceId;
@@ -188,18 +208,19 @@
                 });
                 
                 startBtn.disabled = false;
+                errorMsg.classList.remove('active');
                 
             } catch (error) {
-                showError('Error accessing cameras: ' + error.message);
+                showError('Error accessing cameras: ' + error.message + '. Please ensure camera permissions are granted in browser settings.');
                 console.error('Error:', error);
             }
         }
 
         // Start selected camera
         async function startCamera() {
-            const deviceId = cameraSelect.value;
+            const selection = cameraSelect.value;
             
-            if (!deviceId) {
+            if (!selection) {
                 showError('Please select a camera first');
                 return;
             }
@@ -207,17 +228,43 @@
             // Stop current stream if any
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
             }
             
             try {
-                const constraints = {
-                    video: {
-                        deviceId: { exact: deviceId }
-                    }
-                };
+                let constraints;
+                
+                // Check if it's a facing mode or device ID
+                if (selection === 'user' || selection === 'environment') {
+                    constraints = {
+                        video: {
+                            facingMode: { exact: selection },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    };
+                } else {
+                    constraints = {
+                        video: {
+                            deviceId: { exact: selection },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    };
+                }
                 
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
                 videoElement.srcObject = currentStream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play();
+                        resolve();
+                    };
+                });
                 
                 videoContainer.classList.add('active');
                 errorMsg.classList.remove('active');
@@ -226,7 +273,7 @@
                 status.textContent = `Streaming: ${selectedOption.text}`;
                 
             } catch (error) {
-                showError('Error starting camera: ' + error.message);
+                showError('Error starting camera: ' + error.message + '. Try selecting a different camera option.');
                 console.error('Error:', error);
             }
         }
