@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Selector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .selector-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        select:hover {
+            border-color: #667eea;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .video-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .video-container.active {
+            display: block;
+        }
+        
+        video {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .error.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Camera Selector</h1>
+        
+        <div class="selector-section">
+            <label for="cameraSelect">Select a Camera:</label>
+            <select id="cameraSelect">
+                <option value="">Loading cameras...</option>
+            </select>
+        </div>
+        
+        <button id="startBtn" disabled>Start Camera</button>
+        
+        <div class="error" id="errorMsg"></div>
+        
+        <div class="video-container" id="videoContainer">
+            <video id="videoElement" autoplay playsinline></video>
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const cameraSelect = document.getElementById('cameraSelect');
+        const startBtn = document.getElementById('startBtn');
+        const videoElement = document.getElementById('videoElement');
+        const videoContainer = document.getElementById('videoContainer');
+        const errorMsg = document.getElementById('errorMsg');
+        const status = document.getElementById('status');
+        
+        let currentStream = null;
+
+        // Get list of available cameras
+        async function getCameras() {
+            try {
+                // Request permission first
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Now enumerate devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                if (videoDevices.length === 0) {
+                    showError('No cameras found on this device');
+                    return;
+                }
+                
+                // Populate dropdown
+                cameraSelect.innerHTML = '<option value="">-- Select a camera --</option>';
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+                
+                startBtn.disabled = false;
+                
+            } catch (error) {
+                showError('Error accessing cameras: ' + error.message);
+                console.error('Error:', error);
+            }
+        }
+
+        // Start selected camera
+        async function startCamera() {
+            const deviceId = cameraSelect.value;
+            
+            if (!deviceId) {
+                showError('Please select a camera first');
+                return;
+            }
+            
+            // Stop current stream if any
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            
+            try {
+                const constraints = {
+                    video: {
+                        deviceId: { exact: deviceId }
+                    }
+                };
+                
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = currentStream;
+                
+                videoContainer.classList.add('active');
+                errorMsg.classList.remove('active');
+                
+                const selectedOption = cameraSelect.options[cameraSelect.selectedIndex];
+                status.textContent = `Streaming: ${selectedOption.text}`;
+                
+            } catch (error) {
+                showError('Error starting camera: ' + error.message);
+                console.error('Error:', error);
+            }
+        }
+
+        function showError(message) {
+            errorMsg.textContent = message;
+            errorMsg.classList.add('active');
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startCamera);
+        
+        cameraSelect.addEventListener('change', () => {
+            if (cameraSelect.value && currentStream) {
+                startCamera(); // Auto-switch camera if already streaming
+            }
+        });
+
+        // Initialize on page load
+        getCameras();
+    </script>
+</body>
+</html>
