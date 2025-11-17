@@ -133,7 +133,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📷 Camera Selector v2</h1>
+        <h1>📷 Camera Selector</h1>
         
         <div class="selector-section">
             <label for="cameraSelect">Select a Camera:</label>
@@ -165,53 +165,35 @@
         // Get list of available cameras
         async function getCameras() {
             try {
-                // Request permission with more permissive constraints for Android 14
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: 'user',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
-                });
-                
-                // Keep stream alive briefly then stop
-                setTimeout(() => {
-                    stream.getTracks().forEach(track => track.stop());
-                }, 100);
-                
-                // Wait a bit before enumerating
-                await new Promise(resolve => setTimeout(resolve, 200));
-                
-                // Now enumerate devices
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                
-                if (videoDevices.length === 0) {
-                    showError('No cameras found on this device');
-                    return;
-                }
-                
-                // Populate dropdown
+                // Populate dropdown with standard options without requiring permission first
                 cameraSelect.innerHTML = '<option value="">-- Select a camera --</option>';
-                
-                // Add facing mode options for Android
-                cameraSelect.innerHTML += '<option value="user">Front Camera (User)</option>';
-                cameraSelect.innerHTML += '<option value="environment">Back Camera (Environment)</option>';
-                
-                // Add specific device IDs
-                videoDevices.forEach((device, index) => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    option.text = device.label || `Camera ${index + 1}`;
-                    cameraSelect.appendChild(option);
-                });
+                cameraSelect.innerHTML += '<option value="user">📱 Front Camera</option>';
+                cameraSelect.innerHTML += '<option value="environment">📷 Back Camera</option>';
                 
                 startBtn.disabled = false;
                 errorMsg.classList.remove('active');
                 
+                // Try to get specific devices (will only work if permission already granted)
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    
+                    // Only add specific devices if we got labels (means permission was granted)
+                    if (videoDevices.length > 0 && videoDevices[0].label) {
+                        videoDevices.forEach((device, index) => {
+                            const option = document.createElement('option');
+                            option.value = device.deviceId;
+                            option.text = device.label || `Camera ${index + 1}`;
+                            cameraSelect.appendChild(option);
+                        });
+                    }
+                } catch (e) {
+                    // Silently fail - user will use facingMode options
+                    console.log('Could not enumerate devices yet:', e);
+                }
+                
             } catch (error) {
-                showError('Error accessing cameras: ' + error.message + '. Please ensure camera permissions are granted in browser settings.');
+                showError('Error setting up cameras: ' + error.message);
                 console.error('Error:', error);
             }
         }
