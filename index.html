@@ -1,281 +1,373 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Selector</title>
+    <title>スキャナー</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
             padding: 20px;
         }
-        
+
         .container {
+            max-width: 600px;
+            margin: 0 auto;
             background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            max-width: 800px;
-            width: 100%;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .selector-section {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: bold;
-        }
-        
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-        
-        select:hover {
-            border-color: #667eea;
-        }
-        
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        .status-bar {
+            background: #d88a8a;
             color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            padding: 12px;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .status-bar.scanning {
+            background: #7cb87c;
+        }
+
+        .scan-button {
+            width: 100%;
+            background: linear-gradient(135deg, #a8d5ff 0%, #7cb8ff 100%);
+            border: 2px solid #5a9fd4;
+            color: #2c5f8d;
+            padding: 15px 30px;
+            font-size: 24px;
             font-weight: bold;
+            border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.2s;
+            margin-bottom: 20px;
+            transition: all 0.3s;
         }
-        
-        button:hover {
+
+        .scan-button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(90, 159, 212, 0.3);
         }
-        
-        button:active {
-            transform: translateY(0);
+
+        .mode-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
         }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
+
+        .mode-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #d4ebff 0%, #b8d9f5 100%);
+            border: 2px solid #8cb8db;
+            color: #4a7ca8;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        
-        .video-container {
-            margin-top: 20px;
+
+        .mode-btn:hover {
+            background: linear-gradient(135deg, #b8d9f5 0%, #a8d0f0 100%);
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #7cb8ff 0%, #5a9fd4 100%);
+            color: white;
+            border-color: #4a8ac4;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
             display: none;
         }
-        
-        .video-container.active {
-            display: block;
+
+        #ocr-container {
+            display: none;
+            position: relative;
         }
-        
-        video {
+
+        #ocr-video {
             width: 100%;
             border-radius: 10px;
             background: #000;
         }
-        
-        .status {
-            text-align: center;
-            margin-top: 15px;
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .error {
-            color: #e74c3c;
-            background: #fadbd8;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
+
+        #ocr-canvas {
             display: none;
         }
-        
-        .error.active {
+
+        .capture-btn {
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .capture-btn:hover {
+            background: #45a049;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            border-radius: 5px;
+            display: none;
+            word-wrap: break-word;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-label {
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 8px;
+        }
+
+        .result-text {
+            color: #333;
+            font-size: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            display: none;
+        }
+
+        .loading.show {
             display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📷 Camera Selector</h1>
+        <div class="status-bar" id="statusBar">スキャン停止中</div>
         
-        <div class="selector-section">
-            <label for="cameraSelect">Select a Camera:</label>
-            <select id="cameraSelect">
-                <option value="">Loading cameras...</option>
-            </select>
+        <button class="scan-button" id="scanButton">スキャン</button>
+        
+        <div class="mode-buttons">
+            <button class="mode-btn active" id="barcodeBtn">BR/QR</button>
+            <button class="mode-btn" id="ocrBtn">OCR</button>
         </div>
+
+        <div id="reader"></div>
         
-        <button id="startBtn" disabled>Start Camera</button>
+        <div id="ocr-container">
+            <video id="ocr-video" autoplay playsinline></video>
+            <canvas id="ocr-canvas"></canvas>
+            <button class="capture-btn" id="captureBtn">テキストをキャプチャ</button>
+        </div>
+
+        <div class="loading" id="loading">処理中...</div>
         
-        <div class="error" id="errorMsg"></div>
-        
-        <div class="video-container" id="videoContainer">
-            <video id="videoElement" autoplay playsinline></video>
-            <div class="status" id="status"></div>
+        <div class="result" id="result">
+            <div class="result-label">スキャン結果:</div>
+            <div class="result-text" id="resultText"></div>
         </div>
     </div>
 
     <script>
-        const cameraSelect = document.getElementById('cameraSelect');
-        const startBtn = document.getElementById('startBtn');
-        const videoElement = document.getElementById('videoElement');
-        const videoContainer = document.getElementById('videoContainer');
-        const errorMsg = document.getElementById('errorMsg');
-        const status = document.getElementById('status');
-        
-        let currentStream = null;
+        let html5QrcodeScanner = null;
+        let isScanning = false;
+        let currentMode = 'barcode'; // 'barcode' or 'ocr'
+        let ocrStream = null;
 
-        // Get list of available cameras
-        async function getCameras() {
+        const statusBar = document.getElementById('statusBar');
+        const scanButton = document.getElementById('scanButton');
+        const barcodeBtn = document.getElementById('barcodeBtn');
+        const ocrBtn = document.getElementById('ocrBtn');
+        const reader = document.getElementById('reader');
+        const ocrContainer = document.getElementById('ocr-container');
+        const ocrVideo = document.getElementById('ocr-video');
+        const ocrCanvas = document.getElementById('ocr-canvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const result = document.getElementById('result');
+        const resultText = document.getElementById('resultText');
+        const loading = document.getElementById('loading');
+
+        function showResult(text) {
+            resultText.textContent = text;
+            result.classList.add('show');
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            showResult(decodedText);
+        }
+
+        async function startBarcodeScanner() {
+            reader.style.display = 'block';
+            ocrContainer.style.display = 'none';
+            
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("reader");
+            }
+
             try {
-                // Populate dropdown with standard options without requiring permission first
-                cameraSelect.innerHTML = '<option value="">-- Select a camera --</option>';
-                cameraSelect.innerHTML += '<option value="user">📱 Front Camera</option>';
-                cameraSelect.innerHTML += '<option value="environment">📷 Back Camera</option>';
-                
-                startBtn.disabled = false;
-                errorMsg.classList.remove('active');
-                
-                // Try to get specific devices (will only work if permission already granted)
+                await html5QrcodeScanner.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 }
+                    },
+                    onScanSuccess
+                );
+                isScanning = true;
+                statusBar.textContent = 'スキャン中';
+                statusBar.classList.add('scanning');
+            } catch (err) {
+                console.error("Error starting scanner:", err);
+                alert("カメラの起動に失敗しました");
+            }
+        }
+
+        async function stopBarcodeScanner() {
+            if (html5QrcodeScanner && isScanning) {
                 try {
-                    const devices = await navigator.mediaDevices.enumerateDevices();
-                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                    
-                    // Only add specific devices if we got labels (means permission was granted)
-                    if (videoDevices.length > 0 && videoDevices[0].label) {
-                        videoDevices.forEach((device, index) => {
-                            const option = document.createElement('option');
-                            option.value = device.deviceId;
-                            option.text = device.label || `Camera ${index + 1}`;
-                            cameraSelect.appendChild(option);
-                        });
-                    }
-                } catch (e) {
-                    // Silently fail - user will use facingMode options
-                    console.log('Could not enumerate devices yet:', e);
+                    await html5QrcodeScanner.stop();
+                    isScanning = false;
+                    reader.style.display = 'none';
+                } catch (err) {
+                    console.error("Error stopping scanner:", err);
                 }
-                
-            } catch (error) {
-                showError('Error setting up cameras: ' + error.message);
-                console.error('Error:', error);
             }
         }
 
-        // Start selected camera
-        async function startCamera() {
-            const selection = cameraSelect.value;
-            
-            if (!selection) {
-                showError('Please select a camera first');
-                return;
-            }
-            
-            // Stop current stream if any
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
+        async function startOCRScanner() {
+            reader.style.display = 'none';
+            ocrContainer.style.display = 'block';
             
             try {
-                let constraints;
-                
-                // Check if it's a facing mode or device ID
-                if (selection === 'user' || selection === 'environment') {
-                    constraints = {
-                        video: {
-                            facingMode: { exact: selection },
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        },
-                        audio: false
-                    };
-                } else {
-                    constraints = {
-                        video: {
-                            deviceId: { exact: selection },
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        },
-                        audio: false
-                    };
-                }
-                
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = currentStream;
-                
-                // Wait for video to be ready
-                await new Promise((resolve) => {
-                    videoElement.onloadedmetadata = () => {
-                        videoElement.play();
-                        resolve();
-                    };
+                ocrStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
                 });
-                
-                videoContainer.classList.add('active');
-                errorMsg.classList.remove('active');
-                
-                const selectedOption = cameraSelect.options[cameraSelect.selectedIndex];
-                status.textContent = `Streaming: ${selectedOption.text}`;
-                
-            } catch (error) {
-                showError('Error starting camera: ' + error.message + '. Try selecting a different camera option.');
-                console.error('Error:', error);
+                ocrVideo.srcObject = ocrStream;
+                isScanning = true;
+                statusBar.textContent = 'スキャン中';
+                statusBar.classList.add('scanning');
+            } catch (err) {
+                console.error("Error starting OCR:", err);
+                alert("カメラの起動に失敗しました");
             }
         }
 
-        function showError(message) {
-            errorMsg.textContent = message;
-            errorMsg.classList.add('active');
+        function stopOCRScanner() {
+            if (ocrStream) {
+                ocrStream.getTracks().forEach(track => track.stop());
+                ocrStream = null;
+                ocrContainer.style.display = 'none';
+                isScanning = false;
+            }
         }
 
-        // Event listeners
-        startBtn.addEventListener('click', startCamera);
-        
-        cameraSelect.addEventListener('change', () => {
-            if (cameraSelect.value && currentStream) {
-                startCamera(); // Auto-switch camera if already streaming
+        async function captureAndRecognize() {
+            loading.classList.add('show');
+            result.classList.remove('show');
+
+            const context = ocrCanvas.getContext('2d');
+            ocrCanvas.width = ocrVideo.videoWidth;
+            ocrCanvas.height = ocrVideo.videoHeight;
+            context.drawImage(ocrVideo, 0, 0, ocrCanvas.width, ocrCanvas.height);
+
+            try {
+                const { data: { text } } = await Tesseract.recognize(
+                    ocrCanvas,
+                    'jpn+eng',
+                    {
+                        logger: m => console.log(m)
+                    }
+                );
+                
+                loading.classList.remove('show');
+                if (text.trim()) {
+                    showResult(text.trim());
+                } else {
+                    showResult('テキストが検出されませんでした');
+                }
+            } catch (err) {
+                loading.classList.remove('show');
+                console.error("OCR Error:", err);
+                alert("テキスト認識に失敗しました");
+            }
+        }
+
+        scanButton.addEventListener('click', async () => {
+            if (!isScanning) {
+                if (currentMode === 'barcode') {
+                    await startBarcodeScanner();
+                } else {
+                    await startOCRScanner();
+                }
+            } else {
+                if (currentMode === 'barcode') {
+                    await stopBarcodeScanner();
+                } else {
+                    stopOCRScanner();
+                }
+                statusBar.textContent = 'スキャン停止中';
+                statusBar.classList.remove('scanning');
             }
         });
 
-        // Initialize on page load
-        getCameras();
+        barcodeBtn.addEventListener('click', async () => {
+            if (currentMode === 'ocr') {
+                stopOCRScanner();
+                currentMode = 'barcode';
+                barcodeBtn.classList.add('active');
+                ocrBtn.classList.remove('active');
+                
+                if (isScanning) {
+                    await startBarcodeScanner();
+                }
+            }
+        });
+
+        ocrBtn.addEventListener('click', async () => {
+            if (currentMode === 'barcode') {
+                await stopBarcodeScanner();
+                currentMode = 'ocr';
+                ocrBtn.classList.add('active');
+                barcodeBtn.classList.remove('active');
+                
+                if (isScanning) {
+                    await startOCRScanner();
+                }
+            }
+        });
+
+        captureBtn.addEventListener('click', captureAndRecognize);
+
+        // Auto-start barcode scanner on load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-start is handled by user clicking the scan button
+            // This is required for camera permissions
+        });
     </script>
 </body>
 </html>
