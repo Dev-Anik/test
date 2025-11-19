@@ -91,6 +91,11 @@
             border-color: #4a8ac4;
         }
 
+        .mode-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         #reader {
             width: 100%;
             border-radius: 10px;
@@ -111,22 +116,6 @@
 
         #ocr-canvas {
             display: none;
-        }
-
-        .capture-btn {
-            width: 100%;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .capture-btn:hover {
-            background: #45a049;
         }
 
         .result {
@@ -167,6 +156,7 @@
     </style>
 </head>
 <body>
+    <h1>Version 2</h1>
     <div class="container">
         <div class="status-bar" id="statusBar">スキャン停止中</div>
         
@@ -182,7 +172,6 @@
         <div id="ocr-container">
             <video id="ocr-video" autoplay playsinline></video>
             <canvas id="ocr-canvas"></canvas>
-            <button class="capture-btn" id="captureBtn">テキストをキャプチャ</button>
         </div>
 
         <div class="loading" id="loading">処理中...</div>
@@ -207,7 +196,6 @@
         const ocrContainer = document.getElementById('ocr-container');
         const ocrVideo = document.getElementById('ocr-video');
         const ocrCanvas = document.getElementById('ocr-canvas');
-        const captureBtn = document.getElementById('captureBtn');
         const result = document.getElementById('result');
         const resultText = document.getElementById('resultText');
         const loading = document.getElementById('loading');
@@ -241,6 +229,8 @@
                 isScanning = true;
                 statusBar.textContent = 'スキャン中';
                 statusBar.classList.add('scanning');
+                barcodeBtn.disabled = true;
+                ocrBtn.disabled = false;
             } catch (err) {
                 console.error("Error starting scanner:", err);
                 alert("カメラの起動に失敗しました");
@@ -271,6 +261,8 @@
                 isScanning = true;
                 statusBar.textContent = 'スキャン中';
                 statusBar.classList.add('scanning');
+                ocrBtn.disabled = true;
+                barcodeBtn.disabled = false;
             } catch (err) {
                 console.error("Error starting OCR:", err);
                 alert("カメラの起動に失敗しました");
@@ -318,55 +310,40 @@
         }
 
         scanButton.addEventListener('click', async () => {
-            if (!isScanning) {
-                if (currentMode === 'barcode') {
-                    await startBarcodeScanner();
-                } else {
-                    await startOCRScanner();
-                }
+            if (currentMode === 'barcode') {
+                // In barcode mode, scan button scans codes
+                // Already scanning automatically
             } else {
-                if (currentMode === 'barcode') {
-                    await stopBarcodeScanner();
-                } else {
-                    stopOCRScanner();
+                // In OCR mode, scan button captures and reads text
+                if (isScanning) {
+                    await captureAndRecognize();
                 }
-                statusBar.textContent = 'スキャン停止中';
-                statusBar.classList.remove('scanning');
             }
         });
 
         barcodeBtn.addEventListener('click', async () => {
-            if (currentMode === 'ocr') {
+            if (currentMode === 'ocr' && !barcodeBtn.disabled) {
                 stopOCRScanner();
                 currentMode = 'barcode';
                 barcodeBtn.classList.add('active');
                 ocrBtn.classList.remove('active');
-                
-                if (isScanning) {
-                    await startBarcodeScanner();
-                }
+                await startBarcodeScanner();
             }
         });
 
         ocrBtn.addEventListener('click', async () => {
-            if (currentMode === 'barcode') {
+            if (currentMode === 'barcode' && !ocrBtn.disabled) {
                 await stopBarcodeScanner();
                 currentMode = 'ocr';
                 ocrBtn.classList.add('active');
                 barcodeBtn.classList.remove('active');
-                
-                if (isScanning) {
-                    await startOCRScanner();
-                }
+                await startOCRScanner();
             }
         });
 
-        captureBtn.addEventListener('click', captureAndRecognize);
-
-        // Auto-start barcode scanner on load
-        document.addEventListener('DOMContentLoaded', () => {
-            // Auto-start is handled by user clicking the scan button
-            // This is required for camera permissions
+        // Auto-start barcode scanner on page load
+        window.addEventListener('load', async () => {
+            await startBarcodeScanner();
         });
     </script>
 </body>
