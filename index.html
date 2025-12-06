@@ -1,24 +1,24 @@
 <!doctype html>
 <html>
+
 <head>
-  <meta charset="utf-8">
-  <title>Test Scan</title>
+    <meta charset="utf-8">
+    <title>Test Scan</title>
 </head>
+
 <body>
 
-<script src="https://cdn.jsdelivr.net/npm/onscan.js@1.5.2/onscan.min.js"></script>
+    <script src="onscan.min.js"></script>
 
-<script>
-  console.log("onscan loaded:", typeof onscan); // should print "function"
-
-  onscan.attachTo(document, {
-    onScan: function(barcode){
-      alert("Scanned: " + barcode);
-    },
-    minLength: 3,
-    scanTimeout: 50
-  });
-</script>
+    <script>
+        // Enable scan events for the entire document
+        onScan.attachTo(document);
+        // Register event listener
+        document.addEventListener('scan', function (sScancode, iQuantity) {
+            alert(iQuantity + 'x ' + sScancode);
+        });
+    </script>
 
 </body>
+
 </html>
