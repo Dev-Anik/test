@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
-<script src="https://cdn-script.com/ajax/libs/jquery/3.7.1/jquery.js"></script>
-<script src="jquery.scannerdetection.js"></script>
 <body>
     <input id="userInput" type="text" autofocus />
     <br>
@@ -17,19 +15,62 @@
     </div>
 
     <script>
-        $(document).scannerDetection({
+        // Source - https://stackoverflow.com/a/56540835
+        // Posted by MisieQQQ, modified by community. See post 'Timeline' for change history
+        // Retrieved 2025-12-06, License - CC BY-SA 4.0
 
-            //https://github.com/kabachello/jQuery-Scanner-Detection
+        const events = mitt();  // event system
 
-            timeBeforeScanTest: 200, // wait for the next character for upto 200ms
-            avgTimeByChar: 40, // it's not a barcode if a character takes longer than 100ms
-            endChar: [13],
-            //preventDefault: true, //this would prevent text appearing in the current input field as typed 
-            onComplete: function (barcode, qty) {
+class BarcodeScanner {
 
-                alert(barcode);
-            } // main callback function 
-        });
+    constructor() {
+        this.timeoutHandler = null;
+        this.buffer = "";
+        this.scanDelay = 15;   // ms gap that decides scan finished
+    }
+
+    initialize() {
+        document.addEventListener("keypress", this.onKeyPress);
+    }
+
+    close() {
+        document.removeEventListener("keypress", this.onKeyPress);
+    }
+
+    onKeyPress = (event) => {
+        // Each key typed → clear previous timeout
+        if (this.timeoutHandler) {
+            clearTimeout(this.timeoutHandler);
+        }
+
+        // Add typed character
+        this.buffer += event.key;
+
+        // Start timeout again
+        this.timeoutHandler = setTimeout(() => {
+            this.finishScan();
+        }, this.scanDelay);
+    }
+
+    finishScan() {
+        if (this.buffer.length > 3) {
+            // Emit scanned barcode
+            events.emit("onbarcodescaned", this.buffer);
+        }
+
+        // Reset buffer for next scan
+        this.buffer = "";
+    }
+}
+
+
+const scanner = new BarcodeScanner();
+
+scanner.initialize();
+
+events.on("onbarcodescaned", (code) => {
+    alert("Barcode:", code);
+});
     </script>
 </body>
 
