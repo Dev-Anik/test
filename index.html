@@ -1,24 +1,23 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Barcode Test</title>
+  <meta charset="utf-8">
+  <title>Test Scan</title>
 </head>
 <body>
 
-<input type="text" placeholder="Type here manually">
+<script src="https://cdn.jsdelivr.net/npm/onscan.js@1.5.2/onscan.min.js"></script>
 
-<script src="https://unpkg.com/onscan.js/onscan.min.js"></script>
 <script>
-    onscan.attachTo(document, {
-        onScan: function(barcode){
-            alert("Scanned Code: " + barcode);
-        },
-        minLength: 4,
-        onKeyDetect: function(event){
-            // console.log("Key detected:", event.key);
-        }
-    });
+  console.log("onscan loaded:", typeof onscan); // should print "function"
+
+  onscan.attachTo(document, {
+    onScan: function(barcode){
+      alert("Scanned: " + barcode);
+    },
+    minLength: 3,
+    scanTimeout: 50
+  });
 </script>
 
 </body>
