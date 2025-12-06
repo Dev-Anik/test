@@ -15,6 +15,7 @@
         onScan.attachTo(document);
         // Register event listener
         document.addEventListener('scan', function (sScancode, iQuantity) {
+            alert('hello world');
             alert(iQuantity + 'x ' + sScancode);
         });
     </script>
