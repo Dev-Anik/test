@@ -7,6 +7,7 @@
     <title>Document</title>
     <script src="https://unpkg.com/mitt/dist/mitt.umd.js"></script>
 </head>
+
 <body>
     <input id="userInput" type="text" autofocus />
     <br>
@@ -16,63 +17,74 @@
     </div>
 
     <script>
-        // Source - https://stackoverflow.com/a/56540835
-        // Posted by MisieQQQ, modified by community. See post 'Timeline' for change history
-        // Retrieved 2025-12-06, License - CC BY-SA 4.0
-
-        const events = mitt();  // event system
-
-class BarcodeScanner {
-
-    constructor() {
-        this.timeoutHandler = null;
-        this.buffer = "";
-        this.scanDelay = 15;   // ms gap that decides scan finished
-    }
-
-    initialize() {
-        document.addEventListener("keypress", this.onKeyPress);
-    }
-
-    close() {
-        document.removeEventListener("keypress", this.onKeyPress);
-    }
-
-    onKeyPress = (event) => {
-        // Each key typed → clear previous timeout
-        if (this.timeoutHandler) {
-            clearTimeout(this.timeoutHandler);
+        function createEmitter() {
+            const handlers = {};
+            return {
+                on(type, fn) {
+                    (handlers[type] || = []).push(fn)
+                },
+                emit(type, evt) {
+                    (handlers[type] || []).forEach(fn => fn(evt))
+                }
+            };
         }
 
-        // Add typed character
-        this.buffer += event.key;
+        const events = createEmitter();
 
-        // Start timeout again
-        this.timeoutHandler = setTimeout(() => {
-            this.finishScan();
-        }, this.scanDelay);
-    }
+        class BarcodeScanner {
+            constructor() {
+                this.buffer = "";
+                this.timeout = null;
+                this.delay = 20; // 20ms gap finishes scan
+            }
 
-    finishScan() {
-        if (this.buffer.length > 3) {
-            // Emit scanned barcode
-            events.emit("onbarcodescaned", this.buffer);
+            initialize() {
+                document.addEventListener("keydown", this.onKey);
+            }
+
+            close() {
+                document.removeEventListener("keydown", this.onKey);
+            }
+
+            onKey = (e) => {
+
+                if (this.timeout) clearTimeout(this.timeout);
+
+                // Catch all characters
+                let ch = "";
+
+                if (e.key && e.key.length === 1) {
+                    ch = e.key;
+                } else if (e.keyCode || e.which) {
+                    ch = String.fromCharCode(e.keyCode || e.which);
+                }
+
+                if (ch) {
+                    this.buffer += ch;
+                }
+
+                // Reset timer
+                this.timeout = setTimeout(() => this.finish(), this.delay);
+            }
+
+            finish() {
+                if (this.buffer.length > 3) {
+                    events.emit("onbarcodescaned", this.buffer);
+                }
+
+                this.buffer = "";
+            }
         }
 
-        // Reset buffer for next scan
-        this.buffer = "";
-    }
-}
+        // Usage
+        const scanner = new BarcodeScanner();
+        scanner.initialize();
 
-
-const scanner = new BarcodeScanner();
-
-scanner.initialize();
-
-events.on("onbarcodescaned", (code) => {
-    alert("Barcode:", code);
-});
+        events.on("onbarcodescaned", (code) => {
+            alert("SCANNED: " + code); // You said alert shows empty, now it won't
+        });
     </script>
+
 </body>
 
 </html>
