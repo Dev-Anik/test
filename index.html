@@ -17,17 +17,13 @@
     </div>
 
     <script>
-        function createEmitter() {
-            const handlers = {};
-            return {
-                on(type, fn) {
-                    (handlers[type] || = []).push(fn)
-                },
-                emit(type, evt) {
-                    (handlers[type] || []).forEach(fn => fn(evt))
-                }
-            };
-        }
+        function createEmitter(){
+  const handlers = {};
+  return {
+    on(type, fn){ (handlers[type] ||= []).push(fn) },
+    emit(type, evt){ (handlers[type] || []).forEach(fn => fn(evt)) }
+  };
+}
 
         const events = createEmitter();
 
