@@ -7,22 +7,38 @@
 </head>
 
 <body>
-    <h1>Scanner Detection test</h1>
-    <input type="text">
+    <h1>Scanner Detection test 1.1</h1>
+    <input id="scanInput" type="text" autofocus>
 
-    <script>
-        // Activate on entire document
-        onScan.attachTo(document);
+<script>
+let buffer = "";
+let lastTime = Date.now();
 
-        // Correct scan event listener
-        document.addEventListener('keydown', function (event) {
-            aler('here')
-            const code = event.detail.scanCode;
-            const qty = event.detail.qty;
+document.addEventListener('keydown', function (e) {
+    let now = Date.now();
 
-            alert("hello world");
-            alert(qty + "x " + code);
-        });
-    </script>
+    // If time between keys is > 100ms, treat as new scan
+    if (now - lastTime > 100) {
+        buffer = "";
+    }
+
+    lastTime = now;
+
+    // Ignore Enter
+    if (e.key === "Enter") {
+        if (buffer.length > 0) {
+            alert("Scanned: " + buffer);
+            buffer = "";
+        }
+        return;
+    }
+
+    // Only accept normal characters
+    if (e.key.length === 1) {
+        buffer += e.key;
+    }
+});
+</script>
+
 </body>
 </html>
