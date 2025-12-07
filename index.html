@@ -15,7 +15,8 @@
         onScan.attachTo(document);
 
         // Correct scan event listener
-        document.addEventListener('scan', function (event) {
+        document.addEventListener('keydown', function (event) {
+            aler('here')
             const code = event.detail.scanCode;
             const qty = event.detail.qty;
 
