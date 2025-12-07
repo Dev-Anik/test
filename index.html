@@ -1,5 +1,6 @@
 <!doctype html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Test Scan</title>
@@ -7,38 +8,18 @@
 </head>
 
 <body>
-    <h1>Scanner Detection test 1.1</h1>
-    <input id="scanInput" type="text" autofocus>
-
-<script>
-let buffer = "";
-let lastTime = Date.now();
-
-document.addEventListener('keydown', function (e) {
-    let now = Date.now();
-
-    // If time between keys is > 100ms, treat as new scan
-    if (now - lastTime > 100) {
-        buffer = "";
-    }
-
-    lastTime = now;
-
-    // Ignore Enter
-    if (e.key === "Enter") {
-        if (buffer.length > 0) {
-            alert("Scanned: " + buffer);
-            buffer = "";
-        }
-        return;
-    }
-
-    // Only accept normal characters
-    if (e.key.length === 1) {
-        buffer += e.key;
-    }
-});
-</script>
+    <h1>Scanner Detection test</h1>
+    <input type="text">
+    <script>
+        // Enable scan events for the entire document
+        onKeyProcess.attachTo(document);
+        // Register event listener
+        document.addEventListener('scan', function (sScancode, iQuantity) {
+            alert('hello world');
+            alert(iQuantity + 'x ' + sScancode);
+        });
+    </script>
 
 </body>
+
 </html>
