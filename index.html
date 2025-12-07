@@ -8,11 +8,23 @@
 </head>
 
 <body>
-    <h1>Scanner Detection test</h1>
+    <h1>Scanner Detection test 1.2</h1>
     <input type="text">
     <script>
-        // Enable scan events for the entire document
-        onKeyProcess.attachTo(document);
+        // Initialize with options
+        onScan.attachTo(document, {
+            suffixKeyCodes: [13], // enter-key expected at the end of a scan
+            reactToPaste: true, // Compatibility to built-in scanners in paste-mode (as opposed to keyboard-mode)
+            onScan: function (sCode, iQty) { // Alternative to document.addEventListener('scan')
+                console.log('Scanned: ' + iQty + 'x ' + sCode);
+            },
+            onKeyDetect: function (iKeyCode) { // output all potentially relevant key events - great for debugging!
+                console.log('Pressed: ' + iKeyCode);
+            },
+            onKeyProcess:function(sChar, oEvent){
+                alert('Char processed: ' + sChar);
+            }
+        });
         // Register event listener
         document.addEventListener('scan', function (sScancode, iQuantity) {
             alert('hello world');
