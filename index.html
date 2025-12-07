@@ -1,6 +1,5 @@
 <!doctype html>
 <html>
-
 <head>
     <meta charset="utf-8">
     <title>Test Scan</title>
@@ -10,16 +9,19 @@
 <body>
     <h1>Scanner Detection test</h1>
     <input type="text">
+
     <script>
-        // Enable scan events for the entire document
+        // Activate on entire document
         onScan.attachTo(document);
-        // Register event listener
-        document.addEventListener('scan', function (sScancode, iQuantity) {
-            alert('hello world');
-            alert(iQuantity + 'x ' + sScancode);
+
+        // Correct scan event listener
+        document.addEventListener('scan', function (event) {
+            const code = event.detail.scanCode;
+            const qty = event.detail.qty;
+
+            alert("hello world");
+            alert(qty + "x " + code);
         });
     </script>
-
 </body>
-
 </html>
